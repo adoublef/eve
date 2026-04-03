@@ -6,7 +6,7 @@ use axum::{
     response::Response,
     routing::{get, head},
 };
-use divan::Bencher;
+use divan::{AllocProfiler, Bencher};
 use eve::{
     net::http::{HttpClient, app},
     order::{Handler, Order},
@@ -16,6 +16,9 @@ use reqwest::Client;
 use tokio::{net::TcpListener, task::JoinSet};
 use tokio_util::{io::StreamReader, sync::CancellationToken};
 use url::Url;
+
+#[global_allocator]
+static ALLOC: AllocProfiler = AllocProfiler::system();
 
 fn main() {
     divan::main();
@@ -44,6 +47,7 @@ fn handle_csv(b: Bencher, arg: &Arg) {
         .append_pair("base_url", api_url.as_str());
 
     b.bench(|| {
+        // get this working with counters
         rt.block_on(async {
             let response = client.get(url.clone()).send().await?.error_for_status()?;
             // what is the buffer used by reqwest
