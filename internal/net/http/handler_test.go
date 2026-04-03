@@ -66,9 +66,9 @@ func BenchmarkHandler(b *testing.B) {
 		regions, pages, orders int
 	}
 	bb := map[string]benchcase{
-		"16,16,16": {1 << 4, 1 << 4, 1 << 4},
-		"8,16,32":  {1 << 3, 1 << 4, 1 << 5},
-		"8,8,64":   {1 << 3, 1 << 3, 1 << 6},
+		"(16,16,16)": {1 << 4, 1 << 4, 1 << 4},
+		"(8,16,32)":  {1 << 3, 1 << 4, 1 << 5},
+		"(8,8,64)":   {1 << 3, 1 << 3, 1 << 6},
 	}
 
 	for name, bc := range bb {
@@ -106,7 +106,7 @@ func testClient(t testing.TB, httpC *http.Client) (*http.Client, string) {
 	}
 
 	s := httptest.NewServer(Handler(st))
-	t.Cleanup(func() { s.Close() })
+	t.Cleanup(s.Close)
 
 	return s.Client(), s.URL
 }
@@ -198,5 +198,7 @@ func apiClient(t testing.TB, regions, max, orders int) (httpC *http.Client, base
 
 	// See https://martin.baillie.id/wrote/gotchas-in-the-go-network-packages-defaults/
 	s := httptest.NewServer(mux)
+	t.Cleanup(s.Close)
+
 	return s.Client(), s.URL
 }
