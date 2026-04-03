@@ -27,7 +27,7 @@ fn main() {
 #[derive(Debug, Clone)]
 struct Arg(usize, usize, usize);
 
-#[divan::bench(args = [Arg(1<<4, 1<<4, 1<<4), Arg(1<<3, 1<<4, 1<<5), Arg(1<<3, 1<<3, 1<<6)])] // 4096
+#[divan::bench(threads = false, args = [Arg(1<<4, 1<<4, 1<<4), Arg(1<<3, 1<<4, 1<<5), Arg(1<<3, 1<<3, 1<<6)])] // 4096
 fn handle_csv(b: Bencher, arg: &Arg) {
     let rt = &tokio::runtime::Runtime::new().unwrap();
     let mut set = JoinSet::new();
@@ -46,7 +46,7 @@ fn handle_csv(b: Bencher, arg: &Arg) {
     url.query_pairs_mut()
         .append_pair("base_url", api_url.as_str());
 
-    b.bench(|| {
+    b.bench_local(|| {
         // get this working with counters
         rt.block_on(async {
             let response = client.get(url.clone()).send().await?.error_for_status()?;
