@@ -1,0 +1,31 @@
+[package]
+name = "eve"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.102"
+async-stream = "0.3.6"
+async-trait = "0.1.89"
+axum = "0.8.8"
+bytes = "1.11.1"
+csv-async = { version = "1.3.1", features = ["tokio"] }
+derive_more = { version = "2.1.1", features = ["from"] }
+divan = "0.1.21"
+# dial9-tokio-telemetry = "0.2.0"
+futures-util = "0.3.32"
+http = "1.4.0"
+http-json-stream = "0.1.2"
+json-stream = "0.1.1"
+mime = "0.3.17"
+reqwest = { version = "0.13.2", features = ["stream"] }
+serde = { version = "1.0.228", features = ["derive"] }
+tokio = { version = "1.50.0", features = ["io-util", "rt-multi-thread"] }
+tokio-stream = "0.1.18"
+tokio-util = { version = "0.7.18", features = ["io-util"] }
+tracing = "0.1.44"
+url = { version = "2.5.8", features = ["serde"] }
+
+[[bench]]
+name = "handle_csv_test"
+harness = false
