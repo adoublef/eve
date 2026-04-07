@@ -174,3 +174,6 @@ pub type Result<T, E = anyhow::Error> = core::result::Result<T, E>;
 pub fn Ok<T, E>(value: T) -> Result<T, E> {
     Result::Ok(value)
 }
+
+// Error
+// ErrorRepr

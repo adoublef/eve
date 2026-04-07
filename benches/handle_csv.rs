@@ -1,3 +1,5 @@
+mod common;
+
 use anyhow::{Ok, Result};
 use axum::{
     Json, Router,
@@ -17,8 +19,8 @@ use tokio::{net::TcpListener, task::JoinSet};
 use tokio_util::{io::StreamReader, sync::CancellationToken};
 use url::Url;
 
-#[global_allocator]
-static ALLOC: AllocProfiler = AllocProfiler::system();
+// #[global_allocator]
+// static ALLOC: AllocProfiler = AllocProfiler::system();
 
 fn main() {
     divan::main();
@@ -36,10 +38,17 @@ fn handle_csv(b: Bencher, arg: &Arg) {
     let token = token.clone();
     let (client, mut url, api_url) = rt
         .block_on(async {
-            let (client, api_url) = api_serve(&mut set, token.clone(), arg.0, arg.1, arg.2).await?;
-            let (client, url) = serve(&mut set, token.clone(), client).await?;
+            let (client, api_url) =
+                common::listen_and_serve(&mut set, token.clone(), test_app(arg.0, arg.1, arg.2))
+                    .await?;
+            let (client, url) = common::listen_and_serve(
+                &mut set,
+                token.clone(),
+                app(Handler::new(HttpClient(client))),
+            )
+            .await?;
 
-            Ok((client, url, api_url))
+            anyhow::Ok((client, url, api_url))
         })
         .unwrap();
 
@@ -125,24 +134,28 @@ async fn api_serve(
     Ok((client, url))
 }
 
-async fn serve(
-    set: &mut JoinSet<Result<()>>,
-    token: CancellationToken,
-    api_client: Client,
-) -> Result<(Client, Url)> {
-    let listener = TcpListener::bind("0.0.0.0:0").await?;
-    let addr = listener.local_addr()?;
+fn test_app(num_regions: usize, num_pages: usize, num_orders: usize) -> Router {
+    let regions = (1..=num_regions).map(|n| 10000 + n).collect::<Vec<_>>();
+    let orders = (1..=num_orders)
+        .map(|_| Order::default())
+        .collect::<Vec<_>>();
 
-    let client = Client::new();
-    let url = Url::parse(&format!("http://{addr}"))?;
-
-    set.spawn(async move {
-        let handler = Handler::new(HttpClient(api_client));
-        axum::serve(listener, app(handler))
-            .with_graceful_shutdown(async move { token.cancelled().await })
-            .await?;
-        Ok(())
-    });
-
-    Ok((client, url))
+    Router::new()
+        // GET "/v1/universe/regions"
+        .route("/v1/universe/regions", get(async move |()| Json(regions)))
+        // HEAD "/v1/markets/{region}/orders"
+        .route(
+            "/v1/markets/{region}/orders",
+            head(async move |Path(_): Path<usize>| {
+                Response::builder()
+                    .header("x-pages", num_pages)
+                    .body(Body::empty())
+                    .unwrap()
+            }),
+        )
+        // GET "/v1/markets/{region}/orders?page={page}"
+        .route(
+            "/v1/markets/{region}/orders",
+            get(async move |Path(_): Path<usize>| Json(orders)),
+        )
 }

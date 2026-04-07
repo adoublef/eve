@@ -6,3 +6,4 @@
 - [divan](https://nikolaivazquez.com/blog/divan/)
 - [performance optimization with flamegraph and divan](https://hegdenu.net/posts/performance-optimization-flamegraph-divan/)
 - [how to benhcmark rust code](https://codspeed.io/docs/guides/how-to-benchmark-rust-code)
+- [using derive more for errors in rust](https://quamserena.com/2025-08-02/using-derive-more-for-errors-in-rust)

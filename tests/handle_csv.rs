@@ -1,3 +1,5 @@
+mod common;
+
 use anyhow::{Context as _, Ok, Result};
 use axum::{
     Json, Router,
@@ -31,9 +33,18 @@ async fn handle_csv_ok() -> Result<()> {
 
     let has_header = false;
 
-    let (client, api_url) =
-        api_serve(&mut set, token.clone(), num_regions, num_pages, num_orders).await?;
-    let (client, mut url) = serve(&mut set, token.clone(), client).await?;
+    let (client, api_url) = common::listen_and_serve(
+        &mut set,
+        token.clone(),
+        test_app(num_regions, num_pages, num_orders),
+    )
+    .await?;
+    let (client, mut url) = common::listen_and_serve(
+        &mut set,
+        token.clone(),
+        app(Handler::new(HttpClient(client))),
+    )
+    .await?;
 
     url.query_pairs_mut()
         .append_pair("base_url", api_url.as_str());
@@ -72,27 +83,13 @@ async fn handle_csv_ok() -> Result<()> {
     Ok(())
 }
 
-async fn api_serve(
-    set: &mut JoinSet<Result<()>>,
-    token: CancellationToken,
-    num_regions: usize,
-    num_pages: usize,
-    num_orders: usize,
-) -> Result<(Client, Url)> {
-    let listener = TcpListener::bind("0.0.0.0:0").await?;
-    let addr = listener.local_addr()?;
-
-    let client = Client::builder().build()?; // modify the client
-    let url = Url::parse(&format!("http://{addr}"))?;
-
-    // a vector of ids (stargeting at 10000)
-    // a vector of orders
+fn test_app(num_regions: usize, num_pages: usize, num_orders: usize) -> Router {
     let regions = (1..=num_regions).map(|n| 10000 + n).collect::<Vec<_>>();
     let orders = (1..=num_orders)
         .map(|_| Order::default())
         .collect::<Vec<_>>();
 
-    let app = Router::new()
+    Router::new()
         // GET "/v1/universe/regions"
         .route("/v1/universe/regions", get(async move |()| Json(regions)))
         // HEAD "/v1/markets/{region}/orders"
@@ -109,36 +106,5 @@ async fn api_serve(
         .route(
             "/v1/markets/{region}/orders",
             get(async move |Path(_): Path<usize>| Json(orders)),
-        );
-
-    set.spawn(async move {
-        axum::serve(listener, app)
-            .with_graceful_shutdown(async move { token.cancelled().await })
-            .await?;
-        Ok(())
-    });
-
-    Ok((client, url))
-}
-
-async fn serve(
-    set: &mut JoinSet<Result<()>>,
-    token: CancellationToken,
-    api_client: Client,
-) -> Result<(Client, Url)> {
-    let listener = TcpListener::bind("0.0.0.0:0").await?;
-    let addr = listener.local_addr()?;
-
-    let client = Client::new();
-    let url = Url::parse(&format!("http://{addr}"))?;
-
-    set.spawn(async move {
-        let handler = Handler::new(HttpClient(api_client));
-        axum::serve(listener, app(handler))
-            .with_graceful_shutdown(async move { token.cancelled().await })
-            .await?;
-        Ok(())
-    });
-
-    Ok((client, url))
+        )
 }

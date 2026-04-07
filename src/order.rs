@@ -157,12 +157,12 @@ where
             }
         });
 
-        let (rx, tx) = duplex(DEFAULT_BUF);
+        let (rx, tx) = duplex(DEFAULT_BUF); // if we use futures over tokio, how does this compare?
         set.spawn({
             async move {
                 let mut wri = AsyncWriterBuilder::new()
                     .buffer_capacity(DEFAULT_BUF)
-                    .create_writer(tx);
+                    .create_writer(tx); // tx.into_async_write()
                 while let Some(order) = records.recv().await {
                     wri.write_record(&order).await?;
                 }
