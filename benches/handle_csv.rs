@@ -19,8 +19,8 @@ use tokio::{net::TcpListener, task::JoinSet};
 use tokio_util::{io::StreamReader, sync::CancellationToken};
 use url::Url;
 
-// #[global_allocator]
-// static ALLOC: AllocProfiler = AllocProfiler::system();
+#[global_allocator]
+static ALLOC: AllocProfiler = AllocProfiler::system();
 
 fn main() {
     divan::main();
